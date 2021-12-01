@@ -20,9 +20,7 @@ app.use(errorHandler);
 const start = async () => {
     try {
       await mongoose.connect('mongodb://127.0.0.1:27017/people', {
-        // useNewUrlParser: true,
-        // useUnifiedTopology: true,
-        // useCreateIndex: true
+
       });
       console.log('Connected to MongoDb');
     } catch (err) {

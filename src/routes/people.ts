@@ -5,18 +5,7 @@ import { Person } from '../models/person';
 import { RequestValidationError } from '../errors/request-validation-error';
 import { DatabaseConnectionError } from '../errors/database-connection-error';
 const router = express.Router();
-// class User 
-// {
-//   name: string,
-//   email: string,
-//   phone: number,
-//   addresses:[{
-//     label:String,
-//     addressLine:String,
-//     street:String, 
-//     city:String   
-//   }]
-// }
+
 //list People ---Get all People   
 router.get('/people', (req, res) => {
   console.log("list all people")
@@ -32,39 +21,22 @@ router.get('/people', (req, res) => {
   }
 });
 
-//pagination People --   todo
-router.get('/people/:offset/:limit', (req, res) => {
-  console.log("list all people")
-  console.log(req.params.offset);
-  console.log(req.params.limit);
-  try{
-    Person.find()
-    .then(posts => {
-      res.status(200).send(posts);
-    });
-  }
-  catch (err:any) {
-    console.error(err);
-    throw new DatabaseConnectionError();
-  }
-});
-
-//get Person ---Get People   
-router.get('/people/:email', (req, res) => {
+//get Person ---Get People  based on id 
+router.get('/people/:id', (req, res) => {
   console.log("get Person")
   try{
-    Person.find({email:req.params.email , isDeleted : false}) //list only people who are not deleted
+    Person.find({_id:req.params.id , isDeleted : false}) //list only people who are not deleted
     .then(people => {
       if(people.length > 0 )
       {
         let person = people[0];
         let links = [];
         let linkObj = {
-          "href" : "/people/" + person.email,
+          "href" : "/people/" + person._id,
           "rel" : "self"
         };
         links.push(linkObj);
-      
+   
         let retObject = {
           "id" : person._id,
           "email" : person.email,
@@ -129,29 +101,13 @@ router.post( "/people",[
     }
   });
 
-//Update Person --Put Person   (/peron)
-router.put( "/people/name", async ( req, res ) => {
+  //Update Person --Put Person   (/peron)
+router.put( "/people/:id",
+  async (req: Request, res: Response) => {
   console.log("put ",req.body )
   try
   {
-   await Person.findOneAndUpdate({email:req.body.email}, {$set:{name: req.body.name}});
-   res.status(201).send("Person");
-  } 
-  catch (err:any) {
-    console.error(err);
-    throw new DatabaseConnectionError();
-  }
-    
-} );
-
-
-
-//Update Person --Put Person   (/peron)
-router.put( "/people/address", async ( req, res ) => {
-  console.log("put ",req.body )
-  try
-  {
-   await Person.findOneAndUpdate({email:req.body.email}, {$addToSet:{addresses:
+   await Person.findOneAndUpdate({_id:req.params.id}, {$addToSet:{addresses:
     {$each:[
       {"label":req.body.address.label ,
         "addressLine":req.body.address.addressLine ,
@@ -200,13 +156,13 @@ router.patch( "/people", async ( req, res ) => {
   }
 } );
 
-//delete person wih emmail as parameter
-router.delete( "/people/:email", async ( req, res ) => {
-  console.log("delete person",req.params.email )
-   try
+//delete person wih id as parameter
+router.delete( "/people/:id", async ( req, res ) => {
+  console.log("delete person",req.params.id )
+  try
   {
 
-    const filter = {email: req.params.email}
+    const filter = {_id: req.params.id}
     const update = {isDeleted:true};
     let result = await Person.findOneAndUpdate(filter, update, {
       new: true,
@@ -214,15 +170,15 @@ router.delete( "/people/:email", async ( req, res ) => {
       rawResult: true // Return the raw result from the MongoDB driver
     });
     
-    let retObject = [];
-    retObject.push(result.value);
-    let undoLink;
-    if(result.value != null)
-    {
-      undoLink = "/undo_delete/"  + result.value.name;
-    }
-    retObject.push(undoLink);
-    res.status(204).send(retObject);
+    // let retObject = [];
+    // // retObject.push(result.value);
+    // // let undoLink;
+    // // if(result.value != null)
+    // // {
+    // //   undoLink = "/undo_delete/"  + result.value.name;
+    // // }
+    // // retObject.push(undoLink);
+    res.status(204).send("delete successfully");
   } 
   catch (err:any) {
     console.error(err);
@@ -230,12 +186,12 @@ router.delete( "/people/:email", async ( req, res ) => {
   }
 } );
 //Undo Delete person             (/undopesron)
-router.patch( '/people/:email', async ( req, res ) => {
-  console.log("undelete",req.params.email )
+router.patch( '/people/:id', async ( req, res ) => {
+  console.log("undelete",req.params.id )
   try
   {
 
-    const filter = {email: req.params.email}
+    const filter = {_id: req.params.id}
     const update = {isDeleted:false};
     let result = await Person.findOneAndUpdate(filter, update, {
       new: true,
@@ -251,37 +207,39 @@ router.patch( '/people/:email', async ( req, res ) => {
   }
 } );
 
-//delete person wih emmail as parameter
-router.delete( "/people/:email", async ( req, res ) => {
-  console.log("delete person",req.params.email )
-   try
-  {
-
-    const filter = {email: req.params.email}
-    const update = {isDeleted:true};
-    let result = await Person.findOneAndUpdate(filter, update, {
-      new: true,
-      upsert: true,
-      rawResult: true // Return the raw result from the MongoDB driver
-    });
-  
-    let retObject = [];
-    retObject.push(result.value);
-    let undoLink;
-    if(result.value != null)
-    {
-      undoLink = "/undo_delete/"  + result.value.name;
-    }
-    retObject.push(undoLink);
-    res.status(402).send(retObject);
-  } 
-  catch (err:any) {
-    console.error(err);
-    throw new DatabaseConnectionError();
-  }
-} );
-
 export { router };
+
+//delete person wih id as parameter
+// router.delete( "/people/:id", async ( req, res ) => {
+//   console.log("delete person",req.params.id )
+//    try
+//   {
+
+//     const filter = {_id: req.params.id}
+//     const update = {isDeleted:true};
+//     let result = await Person.findOneAndUpdate(filter, update, {
+//       new: true,
+//       upsert: true,
+//       rawResult: true // Return the raw result from the MongoDB driver
+//     });
+  
+//     let retObject = [];
+//     retObject.push(result.value);
+//     let undoLink;
+//     if(result.value != null)
+//     {
+//       undoLink = "/undo_delete/"  + result.value.name;
+//     }
+//     retObject.push(undoLink);
+//     res.status(402).send(retObject);
+//   } 
+//   catch (err:any) {
+//     console.error(err);
+//     throw new DatabaseConnectionError();
+//   }
+// } );
+
+
 
 //Delete Person --Delete Person (/person)
 // router.delete( "/person/:email", async ( req, res ) => {
@@ -308,6 +266,45 @@ export { router };
 //     res.status(501).send("Server Error");
 //   }
 // } );
+
+//Update Person --Put Person   (/peron)
+// router.put( "/people/:id",
+// [body('email')
+//     .isEmail()
+//     .withMessage('Email must be valid')],
+//   async (req: Request, res: Response) => {
+//   const errors = validationResult(req);
+//   if (!errors.isEmpty()) {
+//     throw new RequestValidationError(errors.array());
+//   }
+//   try
+//   {
+//    await Person.findOneAndUpdate({email:req.params.id}, {$set:{name: req.body.name}});
+//    res.status(200).send("Person");
+//   } 
+//   catch (err:any) {
+//     console.error(err);
+//     throw new DatabaseConnectionError();
+//   }
+    
+// } );
+
+// //pagination People --   todo
+// router.get('/people/:offset/:limit', (req, res) => {
+//   console.log("list all people")
+//   console.log(req.params.offset);
+//   console.log(req.params.limit);
+//   try{
+//     Person.find()
+//     .then(posts => {
+//       res.status(200).send(posts);
+//     });
+//   }
+//   catch (err:any) {
+//     console.error(err);
+//     throw new DatabaseConnectionError();
+//   }
+// });
 
 
 // Create people directory API
